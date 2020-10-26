@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity3">
+<head>
+    <meta charset="UTF-8">
+    <title>Ripit</title>
+    <link th:href="@{css/bootstrap.min.css}" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" th:href="@{css/index.css}">
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script th:src="@{js/jquery-3.3.1.js}"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script th:src="@{js/bootstrap.min.js}"></script>
+    <!--[if lt IE 9]>
+    <script src="/js/html5shiv.js"></script>
+    <script src="/js/respond.min.js"></script>
+    <![endif]-->
+    <script type="text/javascript">
+        var imageMap = new Map();
+        function renderImage(data) {
+            var count = 0;
+            for (var imageUrl in data){
+                var url = data[imageUrl].imgUrl;
+                var path = data[imageUrl].saveFile;
+                var ext = url.substring(url.lastIndexOf(".") + 1);
+                var index = path.indexOf("\\images");
+                path = path.substring(index).replace(/\\/g,"/");
+                $.get({
+                    url:path,
+                    success: function (da) {
+                        var newCol = document.createElement("div");
+                        newCol.className = "col-lg-3 col-lg-pull-3 col-md-4 col-md-pull-8 col-sm-6";
+                        var newCard = document.createElement("div");
+                        newCard.classList.add("card");
+                        var aNode = document.createElement("a");
+                        aNode.href = 'data:image/' + ext + ";base64," + da;
+                        aNode.download = 'myImage' + count++ + ext;
+                        var imgNode = document.createElement("img");
+                        imgNode.className = "card-img-top";
+                        imgNode.src = 'data:image/' + ext + ";base64," + da;
+                        imgNode.alt = "...";
+                        newCard.appendChild(aNode);
+                        aNode.appendChild(imgNode);
+                        newCol.appendChild(newCard);
+                        var row = document.querySelector(".row");
+                        row.appendChild(newCol);
+                        imageMap.set(url,path);
+                    },
+                    error:function (data,status,e) {
+                    }
+                });
+            }
+        }
+
+
+       /* function informServer(str) {
+            $.post({
+                url:str,
+                data: {"CMD":"DELETE_SRC"},
+                success:function (data) {
+                    console.log(data);
+                },
+                error:function () {
+                    console.log("something is wrong");
+                }
+            });
+        }*/
+
+        $(function () {
+            $(".jumbotron form button[type=submit]").click(function(event) {
+                event.preventDefault();
+                var $this = $(this);
+                var urlInput = $(this.parentElement.children.item(0)).val();
+                if (!urlInput){
+                    $("#exampleModal").modal('show');
+                    return;
+                };
+                urlInput = decodeURIComponent(decodeURIComponent(urlInput));
+                if (imageMap.get("urlToRip") === urlInput){
+                    showMessage("INFO","已经处理过该url，不做重复功哦！");
+                    return;
+                }
+
+                if ($(".col-lg-3") != null && imageMap.has("urlToRip")){
+                    if (confirm("处理新的url时，当前网页所有图片将会丢失，还要继续吗？")){
+                        $(".col-lg-3").remove();
+                    }else {
+                        return;
+                    }
+                }
+                imageMap.set("urlToRip",urlInput);
+                $this.prop("disabled",true);
+               $.ajax({
+                   url:"/index",
+                   type:"post",
+                   dataType:"json",
+                   data:{urlInput},
+                   accepts:{
+                     dType: "application/json"
+                   },
+                   success: function (data) {
+                       console.log("I'm in");
+                       console.log(data);
+                       if (data.TYPE == "ERROR"){
+                           if ($(".alert").hasClass("alert-info")){
+                               $(".alert").removeClass("alert-info");
+                               $(".alert").addClass("alert-warning");
+                           }
+                           showMessage(data.TYPE,data.message);
+                           $this.prop("disabled",false);
+                       }
+
+                       renderImage(data);
+                       // informServer("/images/rips/");
+                       $this.prop("disabled",false);
+                   },
+                   error: function (data, status, e) {
+                       console.log("something is wrong");
+                   }
+               });
+                event.stopPropagation();
+            });
+            $(".alert button").click(function (event) {
+                $(".alert").hide('fast');
+                event.stopPropagation();
+            });
+            function showMessage(type,message) {
+                $(".alert h4").text(type);
+                $(".alert p").text(message);
+                $(".alert").show('fast');
+            }
+        });
+    </script>
+    <style type="text/css">
+        *{
+            font-family: -apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif
+        }
+
+        ::selection {
+            background: #f4e1c0;
+            color: #101012;
+            text-shadow: none;
+        }
+        .card-img-top{
+            border-radius: 8px;
+        }
+        .jumbotron{
+            opacity: 1;
+            background: #f7f7f7;
+            transition: all .3s;
+            border-radius: 10px;
+        }
+        .jumbotron:hover{
+            transform: translateY(5px);
+            -moz-box-shadow: 10px 10px 5px #888888; /* 老的 Firefox */
+            box-shadow: 0px 0px 10px #888888;
+            text-shadow: #1b1e21;
+        }
+        .card{
+            opacity: 1;
+            background: #f7f7f7;
+            transition: all 0.3s;
+            box-sizing: border-box;
+            border-radius: 8px;
+        }
+        .card:hover{
+            transform: translateY(5px);
+            -moz-box-shadow: 10px 10px 5px #888888; /* 老的 Firefox */
+            box-shadow: 0px 0px 10px #888888;
+            text-shadow: #1b1e21;
+        }
+        .row>div{
+            margin-bottom:10px;
+        }
+        .alert{
+            width: 50%;
+            margin: 10px 0 0;
+            display: none;
+        }
+    </style>
+
+</head>
+<body>
+<div class="container">
+    <div class="jumbotron" style="padding: 2rem">
+        <h1 style="color:cornflowerblue">欢迎来到Ripit!</h1>
+        <p class="lead">这是一个新浪微博网页图片抓取工具，将网页地址填入下方的输入框，点击抓取按钮即可开始抓取。</p>
+        <hr class="my-4">
+        <form class="form-inline" action="#" th:action="@{/}">
+            <input class="form-control form-control-lg mr-sm-2" type="text" name="rawUrl" style="width: 45%" placeholder="将地址填入此处" aria-label="Search" />
+            <button class="btn btn-outline-primary mx-2 mx-lg-2" type="submit">抓取</button>
+        </form>
+        <div class="alert alert-warning alert-dismissible fade show" role="alert" aria-hidden="true">
+            <h4 class="alert-heading"></h4>
+            <p></p>
+            <button type="button" class="close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ErrorModal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-center">
+                    <h5 class="modal-title" id="exampleModalLabel">[Error]</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    无效Url，网页地址不能为空！
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-warning" data-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+</div>
+<div class="container cardContainer">
+    <div class="row">
+
+    </div>
+</div>
+</body>
+</html>
