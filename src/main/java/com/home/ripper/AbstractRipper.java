@@ -86,7 +86,7 @@ public abstract class AbstractRipper implements Runnable{
                             constructors.add(ripperConstructor);
                         } catch (ClassNotFoundException e) {
                             logger.error("ClassNotFoundException loading " + className);
-                            jarFile.close(); // Resource leak fix?
+                            jarFile.close();
                             throw new RuntimeException("ClassNotFoundException loading " + className);
                         } catch (NoSuchMethodException e) {
                             e.printStackTrace();
