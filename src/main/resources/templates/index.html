@@ -34,7 +34,7 @@
                         newCard.classList.add("card");
                         var aNode = document.createElement("a");
                         aNode.href = 'data:image/' + ext + ";base64," + da;
-                        aNode.download = 'myImage' + count++ + ext;
+						aNode.download = 'myImage' + count++ + '.' + ext;
                         var imgNode = document.createElement("img");
                         imgNode.className = "card-img-top";
                         imgNode.src = 'data:image/' + ext + ";base64," + da;
