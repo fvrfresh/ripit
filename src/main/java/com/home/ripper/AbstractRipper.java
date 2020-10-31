@@ -62,9 +62,39 @@ public abstract class AbstractRipper implements Runnable{
     }
 
     private static List<Constructor<AbstractRipper>> getAllRippersConstructors() {
+        String codeSource = AbstractRipper.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        Pattern pattern = Pattern.compile("^file:/(.*[.]jar)[!].*");
+        Matcher matcher = pattern.matcher(codeSource);
         File f = new File(".");
-        List<Constructor<AbstractRipper>> constructors = null;
+        List<Constructor<AbstractRipper>> constructors = new ArrayList<>();
         try {
+            if (matcher.matches()){
+                codeSource = matcher.group(1);
+                JarFile jarFile = new JarFile(codeSource);
+                Enumeration<JarEntry> entries = jarFile.entries();
+                while (entries.hasMoreElements()){
+                    JarEntry nextElement = entries.nextElement();
+                    String entryName = nextElement.getName();
+                    if (!nextElement.isDirectory() && entryName.indexOf("com") > 0 && entryName.contains("rippers") && entryName.endsWith(".class")) {
+                        String className = entryName.substring(entryName.indexOf("com")).replace('/', '.').replace('\\', '.').replace(".class", "");
+                        try {
+                            Constructor<AbstractRipper> ripperConstructor = null;
+                            Class<AbstractRipper> ripperClass = (Class<AbstractRipper>) Class.forName(className);
+                            if (AbstractRipper.class.isAssignableFrom(ripperClass)){
+                                ripperConstructor = ripperClass.getConstructor(URL.class);
+                            }
+                            constructors.add(ripperConstructor);
+                        } catch (ClassNotFoundException e) {
+                            logger.error("ClassNotFoundException loading " + className);
+                            jarFile.close(); // Resource leak fix?
+                            throw new RuntimeException("ClassNotFoundException loading " + className);
+                        } catch (NoSuchMethodException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                return constructors;
+            }
             Path path = FileSystems.getDefault().getPath(f.getCanonicalPath());
             Stream<Path> list = Files.find(path,Integer.MAX_VALUE,AbstractRipper::testPath);
             constructors = list.map(Path::toString)
