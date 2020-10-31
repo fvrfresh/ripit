@@ -27,7 +27,7 @@ public class WebPage {
     private int THREAD_SLEEPING;
     static{
         DRIVERNAME = "webdriver.gecko.driver";
-        DRIVERPATH = "d:/java/MyLib/geckodriver.exe";
+        DRIVERPATH = "D:/Java/jdk_1.8.0_201/MyLib/geckodriver.exe";
         logger.info("配置WebDriver第三方驱动......");
         System.setProperty(DRIVERNAME,DRIVERPATH);
     }
